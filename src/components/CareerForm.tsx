@@ -1,136 +1,219 @@
-'use client'; // Next.js directive for client-side component
-
-import React, { useState } from 'react';
+'use client';
+import { useState } from 'react';
 
 /**
  * CareerForm Component
  * 
- * A complete career planning form that:
- * 1. Collects user skills, interests, and goals
- * 2. Submits data to an API endpoint
- * 3. Displays generated career plan
- * 
+ * An AI-powered career mentor form that provides personalized career guidance based on user inputs.
  * Features:
- * - Loading state management
- * - Result display area
- * - Responsive design
+ * - Multiple roadmap types (career, resume, study plan, interview prep)
+ * - Chat-like interaction history
+ * - Responsive design with error handling
+ * - Copy-to-clipboard functionality for results
  */
 export default function CareerForm() {
-  // State for form inputs
-  const [skills, setSkills] = useState(''); // Stores user's skills
-  const [interests, setInterests] = useState(''); // Stores user's interests
-  const [goals, setGoals] = useState(''); // Stores user's career goals
+  // State management for form inputs and application state
+  const [skills, setSkills] = useState(''); // User's skills input
+  const [interests, setInterests] = useState(''); // User's interests input
+  const [goals, setGoals] = useState(''); // User's career goals input
+  const [result, setResult] = useState(''); // Generated roadmap/advice result
+  const [isLoading, setIsLoading] = useState(false); // Loading state for API calls
+  const [error, setError] = useState(''); // Error message state
+  const [mode, setMode] = useState('career'); // Selected guidance mode (career/resume/study/interview)
 
-  // State for UI control
-  const [loading, setLoading] = useState(false); // Tracks API request status
-  const [result, setResult] = useState(''); // Stores API response
+  // Type definition and state for message history
+  type Message = { role: 'user' | 'assistant'; content: string };
+  const [messages, setMessages] = useState<Message[]>([]); // Conversation history
 
   /**
-   * Handles form submission
+   * Handles form submission to generate career guidance
    * @param e - React form event
    */
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Prevent default form behavior
-    
-    // Reset and prepare UI
-    setLoading(true); // Show loading state
-    setResult(''); // Clear previous results
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+  
+    // Create context message based on selected mode
+    let contextMessage = '';
+    switch (mode) {
+      case 'resume':
+        contextMessage = 'You want tips to boost your resume with your current skills and goals.';
+        break;
+      case 'study':
+        contextMessage = 'You want a 6-month personalized study plan to reach your goal.';
+        break;
+      case 'interview':
+        contextMessage = 'You want interview preparation tailored to your field.';
+        break;
+      default:
+        contextMessage = 'You want a full career roadmap to reach your long-term goal.';
+    }
 
+    // Create user message with context and inputs
+    const userMessage: Message = {
+      role: 'user',
+      content: `${contextMessage}\n\nSkills: ${skills}\nInterests: ${interests}\nGoals: ${goals}`
+    };
+  
+    const newMessages = [...messages, userMessage];
+  
     try {
-      // Send data to API endpoint
+      // API call to generate response
       const response = await fetch('/api/generate', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json' // Specify JSON content
-        },
-        body: JSON.stringify({ 
-          skills, 
-          interests, 
-          goals 
-        }), // Convert data to JSON string
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newMessages, mode }),
       });
-
-      // Parse API response
-      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
       
-      // Update UI with results
-      setResult(data.result); // Display the generated plan
-    } catch (error) {
-      console.error('Submission failed:', error);
-      setResult('Failed to generate career plan. Please try again.');
+      // Process successful response
+      const data = await response.json();
+      const aiMessage: Message = { role: 'assistant', content: data.result };
+  
+      // Update state with new messages and result
+      setMessages([...newMessages, aiMessage]);
+      setResult(data.result);
+      setSkills('');
+      setInterests('');
+      setGoals('');
+    } catch (err) {
+      // Handle errors
+      console.error('Generation failed:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate response');
     } finally {
-      setLoading(false); // Reset loading state
+      setIsLoading(false);
     }
   };
 
   return (
-    <main className="max-w-2xl mx-auto mt-10 p-4">
-      {/* Career Planning Form */}
+    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
+      <h1 className="text-2xl font-bold mb-6 text-center">AI Career Mentor Agent</h1>
+      
+      {/* Main form for user input */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Skills Input */}
+        {/* Skills input */}
         <div>
-          <label className="block text-sm font-medium">Skills</label>
+          <label htmlFor="skills" className="block text-sm font-medium text-gray-700">
+            Your Skills 
+          </label>
           <input
             type="text"
-            className="w-full px-3 py-2 border rounded"
+            id="skills"
             value={skills}
             onChange={(e) => setSkills(e.target.value)}
-            placeholder="e.g., Python, networking"
-            required // Make field mandatory
+            placeholder="Example: Python, JavaScript, Data Analysis"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            required
           />
         </div>
 
-        {/* Interests Input */}
+        {/* Interests input */}
         <div>
-          <label className="block text-sm font-medium">Interests</label>
+          <label htmlFor="interests" className="block text-sm font-medium text-gray-700">
+            Your Interests 
+          </label>
           <input
             type="text"
-            className="w-full px-3 py-2 border rounded"
+            id="interests"
             value={interests}
             onChange={(e) => setInterests(e.target.value)}
-            placeholder="e.g., cybersecurity, finance"
+            placeholder="Example: Web Development, AI, Cybersecurity"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             required
           />
         </div>
 
-        {/* Goals Input */}
+        {/* Goals input */}
         <div>
-          <label className="block text-sm font-medium">Career Goals</label>
-          <input
-            type="text"
-            className="w-full px-3 py-2 border rounded"
+          <label htmlFor="goals" className="block text-sm font-medium text-gray-700">
+            Your Career Goals 
+          </label>
+          <textarea
+            id="goals"
             value={goals}
             onChange={(e) => setGoals(e.target.value)}
-            placeholder="e.g., become a quant analyst"
+            placeholder="Example: Become a Full-stack Developer in 2 years"
+            rows={3}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             required
           />
         </div>
 
-        {/* Submit Button */}
+        {/* Roadmap type selector */}
+        <div>
+          <label htmlFor="mode" className="block text-sm font-medium text-gray-700">
+            Roadmap Type
+          </label>
+          <select
+            id="mode"
+            value={mode}
+            onChange={(e) => setMode(e.target.value)}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="career">Full Career Roadmap</option>
+            <option value="resume">Resume Skill Boost</option>
+            <option value="study">Study Plan (6 months)</option>
+            <option value="interview">Interview Prep Guidance</option>
+          </select>
+        </div>
+
+        {/* Submit button */}
         <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-          disabled={loading} // Disable during API call
+          disabled={isLoading}
+          className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {loading ? (
-            <>
-              <span className="animate-pulse">⚡</span> Generating...
-            </>
-          ) : (
-            'Generate Career Plan'
-          )}
+          {isLoading ? 'Generating...' : 'Generate User Selection'}
         </button>
       </form>
 
-      {/* Results Display */}
-      {result && (
-        <div className="mt-6 p-4 bg-white border rounded whitespace-pre-wrap">
-          <h2 className="text-lg font-semibold mb-2">Your Career Plan</h2>
-          <div className="prose max-w-none">
-            {result}
-          </div>
+      {/* Error display */}
+      {error && (
+        <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
+          <p>{error}</p>
         </div>
       )}
-    </main>
+
+      {/* Results display */}
+      {result && (
+        <div className="mt-6 p-4 bg-gray-50 rounded-md">
+          <h2 className="text-lg font-semibold mb-2">Your Career Roadmap:</h2>
+          <button
+            className="mb-3 text-sm text-blue-600 underline hover:text-blue-800"
+            onClick={() => navigator.clipboard.writeText(result)}
+          >
+            📋 Copy to Clipboard
+          </button>
+          <div 
+            className="prose max-w-none" 
+            dangerouslySetInnerHTML={{ __html: result.replace(/\n/g, '<br />') }}
+          />
+        </div>
+      )}
+
+      {/* Conversation history */}
+      {messages.length > 0 && (
+        <div className="mt-6 space-y-4">
+          <h2 className="text-lg font-semibold">Chat History:</h2>
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`p-3 rounded-md ${
+                msg.role === 'user'
+                  ? 'bg-blue-50 border border-blue-200 text-blue-800'
+                  : 'bg-gray-100 border border-gray-300 text-gray-800'
+              }`}
+            >
+              <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong>
+              <div dangerouslySetInnerHTML={{ __html: msg.content.replace(/\n/g, '<br />') }} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

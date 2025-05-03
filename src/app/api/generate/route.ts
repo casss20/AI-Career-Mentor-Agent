@@ -1,79 +1,122 @@
 import { NextResponse } from 'next/server';
 
 /**
- * POST API endpoint for generating career roadmaps using OpenAI
- * @param req - The incoming request containing skills, interests and goals
- * @returns JSON response with AI-generated career plan or error message
+ * API Route: /api/generate
+ * 
+ * This endpoint processes career guidance requests by:
+ * 1. Validating input
+ * 2. Generating mode-specific instructions
+ * 3. Calling OpenAI's API
+ * 4. Formatting and returning the response
+ * 
+ * Security: Requires valid OpenAI API key
+ * Input: { messages: Message[], mode: string }
+ * Output: { result: string } or error
  */
 export async function POST(req: Request) {
-  // Step 1: Parse the JSON body from the incoming request
-  const { skills, interests, goals } = await req.json();
+  // Parse and validate request body
+  const body = await req.json();
+  const { messages, mode } = body;
 
-  // Step 2: Construct the prompt for OpenAI
-  const prompt = `
-You are an AI Career Mentor.
-Generate a personalized career roadmap based on:
+  // Input validation
+  if (!messages || !Array.isArray(messages)) {
+    return NextResponse.json(
+      { error: 'Invalid message format' }, 
+      { status: 400 }
+    );
+  }
 
-Skills: ${skills}
-Interests: ${interests}
-Goals: ${goals}
+  /**
+   * Generate mode-specific task instructions
+   * Each mode produces different guidance:
+   * - resume: Focuses on skill presentation
+   * - study: Creates learning milestones
+   * - interview: Prepares for job interviews
+   * - default: Comprehensive career planning
+   */
+  let taskInstruction = '';
+  switch (mode) {
+    case 'resume':
+      taskInstruction =
+        'Suggest resume enhancements: specific skills, certifications, and tools to add based on the user’s goals. Include quantifiable achievements where possible.';
+      break;
+    case 'study':
+      taskInstruction =
+        'Build a 6-month personalized study plan. Break it down into monthly milestones with specific topics, recommended resources (free and paid), and practice exercises.';
+      break;
+    case 'interview':
+      taskInstruction =
+        'Generate personalized interview prep guidance, including: 5 common technical questions, 3 behavioral questions, ideal answer structures, and company research tips for the user’s target role.';
+      break;
+    default:
+      taskInstruction =
+        'Create a detailed 2-year career roadmap. Include: 3 potential career paths, core skills to master, recommended learning resources, networking strategies, and portfolio project ideas.';
+  }
 
-Include these sections:
-1. Recommended Job Roles
-2. Skills to Develop
-3. Learning Resources
-4. Step-by-Step Timeline
-5. Networking Opportunities
+  // System prompt template with mode context
+  const systemPrompt = `
+You are an expert career mentor AI with 10+ years experience in tech recruiting. 
+Guidance must be:
+- Specific to the user's current skills and goals
+- Actionable with clear next steps
+- Formatted in Markdown with ## headings and bullet points
+- Include resources (links when possible)
+- Address potential roadblocks
 
-Use clear markdown formatting with headings and bullet points.
+Current Mode: ${mode}
+Focus Area: ${taskInstruction}
 `;
 
   try {
-    // Step 3: Call OpenAI API
+    // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Using API key from environment variables
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4', // Using GPT-4 model
+        model: 'gpt-3.5-turbo',
         messages: [
-          // System message to set AI behavior
-          { 
-            role: 'system', 
-            content: 'You are a knowledgeable career coach. Provide practical, actionable advice.' 
-          },
-          // User message with our constructed prompt
-          { role: 'user', content: prompt },
+          { role: 'system', content: systemPrompt }, // Set AI behavior
+          ...messages, // User conversation history
         ],
-        temperature: 0.7, // Controls randomness (0-1)
-        max_tokens: 1000, // Limit response length
+        temperature: 0.7, // Balance creativity vs focus
+        max_tokens: 1500, // Limit response length
       }),
     });
 
-    // Step 4: Handle the response
+    // Handle API errors
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
+      const error = await response.json();
+      console.error('OpenAI API Error:', error);
+      return NextResponse.json(
+        { 
+          error: error.error?.message || 'Failed to generate response',
+          details: error.error 
+        }, 
+        { status: 500 }
+      );
     }
 
+    // Process successful response
     const data = await response.json();
-    
-    // Extract the generated message content
-    const message = data.choices?.[0]?.message?.content;
+    const result = data.choices?.[0]?.message?.content ?? 'No response generated';
 
-    // Step 5: Return the result to the client
+    // Return formatted result
     return NextResponse.json({ 
-      success: true,
-      result: message || "No response generated."
+      result,
+      metadata: {
+        mode,
+        tokens_used: data.usage?.total_tokens,
+        model: data.model
+      }
     });
 
   } catch (error) {
-    // Error handling
-    console.error('Career roadmap generation failed:', error);
+    console.error('Server Error:', error);
     return NextResponse.json(
-      { success: false, error: "Failed to generate career plan" },
+      { error: 'Internal server error' }, 
       { status: 500 }
     );
   }
