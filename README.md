@@ -1,66 +1,48 @@
-# AI Career Mentor Agent
+# 🧠 AI Career Mentor Agent
 
-## Objective
+An intelligent career planning assistant powered by OpenAI's GPT, built with Next.js and TypeScript. Users can generate custom roadmaps, study plans, resume tips, or interview prep — all tailored to their goals.
 
-Guide users through career planning using LLM-driven suggestions.
+---
 
-## Tech Stack
+## 🚀 Features
 
-- Next.js
-- Pinecone
-- OpenAI API
-- TypeScript
+- ✍️ User input form for skills, interests, and goals
+- 📡 GPT-powered suggestions using OpenAI API
+- 🧭 Multiple roadmap **modes**:
+  - Full Career Roadmap
+  - Resume Skill Boost
+  - 6-Month Study Plan
+  - Interview Preparation
+- 🧠 Chat memory and response history
+- 📋 One-click copy-to-clipboard
+- 🌐 Built with the latest Next.js 15 App Router
 
-## Implementation Steps
+---
 
-1. Collect user goals, skills, and history
-1. Embed career paths and training data
-1. Use RAG to tailor suggestions
-1. Track evolving user profiles over time
+## 💻 Tech Stack
 
-## Challenges
+- [Next.js](https://nextjs.org/)
+- [OpenAI API](https://platform.openai.com/)
+- TypeScript, Tailwind CSS
+- React Hooks, Serverless API Route
+- Markdown Rendering
 
-- Long-term memory and personalization
-- Suggesting actionable learning paths
-- Balancing accuracy vs inspiration
+---
 
-## Why It’s Impressive
-
-Blends user profiling, LLMs, and career ed-tech.
-
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
+## 🛠 Getting Started
 
 ```bash
+# Clone the repo
+git clone https://github.com/your-username/ai-career-mentor-agent
+
+# Navigate to the project
+cd ai-career-mentor-agent
+
+# Install dependencies
+npm install
+
+# Add your OpenAI key to `.env.local`
+OPENAI_API_KEY=sk-...
+
+# Start the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
